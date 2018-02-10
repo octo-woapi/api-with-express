@@ -13,5 +13,3 @@ Start the project
 ```
 $ npm start # default port is 3000
 ```
-
-Once started, browse the API at http://localhost:3000/documentation
