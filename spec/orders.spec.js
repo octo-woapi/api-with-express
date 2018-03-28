@@ -295,7 +295,7 @@ describe("Orders", () => {
       });
 
       describe("when new status is pending", () => {
-        it("is returns 200", async () => {
+        it("returns 200", async () => {
           const { headers } = await testUtils.addOrder();
           const orderId = headers.location.slice("/orders/".length);
           const { statusCode } = await queryApi(
@@ -308,7 +308,7 @@ describe("Orders", () => {
       });
 
       describe("when new status is paid", () => {
-        it("is returns 200", async () => {
+        it("returns 200", async () => {
           const { headers } = await testUtils.addOrder();
           const orderId = headers.location.slice("/orders/".length);
           const { statusCode } = await queryApi(
@@ -331,7 +331,7 @@ describe("Orders", () => {
       });
 
       describe("when new status is cancelled", () => {
-        it("is returns 200", async () => {
+        it("returns 200", async () => {
           const { headers } = await testUtils.addOrder();
           const orderId = headers.location.slice("/orders/".length);
           const { statusCode } = await queryApi(

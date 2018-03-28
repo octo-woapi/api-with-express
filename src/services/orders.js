@@ -2,12 +2,21 @@ const Joi = require("joi");
 const Sequelize = require("sequelize");
 const Op = Sequelize.Op;
 
-module.exports = app => {
-  async function create(req, res) {
-    const schemas = app.get("schemas");
-    const models = app.get("models");
+module.exports = (
+  schemas,
+  models,
+  { MissingResourceError, ValidationError }
+) => {
+  return {
+    create,
+    find,
+    list,
+    removeAll,
+    updateStatus
+  };
 
-    const { error } = Joi.validate(req.body, schemas.Order, {
+  async function create(data) {
+    const { error } = Joi.validate(data, schemas.Order, {
       abortEarly: false
     });
 
@@ -15,21 +24,20 @@ module.exports = app => {
       const errorMessage = error.details.map(({ message, context }) =>
         Object.assign({ message, context })
       );
-      return res.status(400).send({ data: errorMessage });
+
+      throw new ValidationError(errorMessage);
     }
 
     const productList = await models.Product.findAll({
       where: {
-        id: { [Op.in]: req.body.product_list.map(id => parseInt(id, 0)) }
+        id: { [Op.in]: data.product_list.map(id => parseInt(id, 0)) }
       }
     });
 
     if (productList.length === 0) {
-      return res.status(400).send({
-        data: [
-          { message: "Unknown products", context: { key: "product_list" } }
-        ]
-      });
+      throw new ValidationError([
+        { message: "Unknown products", context: { key: "product_list" } }
+      ]);
     }
 
     const productListData = productList.map(product => product.toJSON());
@@ -61,54 +69,46 @@ module.exports = app => {
         shipment_amount: orderShipmentPrice,
         total_weight: orderTotalWeight
       },
-      { product_list: req.body.product_list }
+      { product_list: data.product_list }
     );
 
-    const order = await models.Order.create(orderData);
-    res.set("Location", `/orders/${order.id}`);
-    res.status(201).send();
+    const { id } = await models.Order.create(orderData);
+    return id;
   }
 
-  async function list(req, res) {
-    const models = app.get("models");
-
+  async function list(sort) {
     let orderList = await models.Order.findAll();
-    const { sort } = req.query;
+
     orderList = orderList.sort((a, b) => {
       if (a[sort] < b[sort]) return -1;
       if (a[sort] > b[sort]) return 1;
       return 0;
     });
-    res.status(200).send(orderList);
+
+    return orderList;
   }
 
-  async function find(req, res) {
-    const models = app.get("models");
-
-    const { id } = req.params;
+  async function find(id) {
     const order = await models.Order.findById(id);
-    if (!order) return res.status(404).send();
-    return res.status(200).send(order.toJSON());
+    if (!order) {
+      throw new MissingResourceError();
+    }
+    return order.toJSON();
   }
 
-  async function removeAll(req, res) {
-    const models = app.get("models");
-
+  async function removeAll() {
     const orderList = await models.Order.findAll();
     orderList.forEach(order => order.destroy());
-    res.status(204).send();
   }
 
-  async function updateStatus(req, res) {
-    const models = app.get("models");
-
-    const { id } = req.params;
+  async function updateStatus(id, status) {
     const order = await models.Order.findById(id);
-    if (!order) return res.status(404).send();
+    if (!order) {
+      throw new MissingResourceError();
+    }
 
-    const { status } = req.body;
     if (!["pending", "paid", "cancelled"].includes(status)) {
-      return res.status(400).send();
+      throw new ValidationError();
     }
 
     if (status === "paid") {
@@ -116,9 +116,5 @@ module.exports = app => {
     }
 
     await order.update({ status });
-
-    return res.status(200).send();
   }
-
-  return { create, find, list, removeAll, updateStatus };
 };

@@ -1,8 +1,8 @@
-module.exports = (app, logger, schemas, models) => {
+module.exports = (logger, schemas, models, exceptions) => {
   return {
-    utils: require("./utils")(logger),
-    bills: require("./bills")(app, schemas, models),
-    products: require("./products")(app, schemas, models),
-    orders: require("./orders")(app, schemas, models)
+    bills: require("./bills")(models),
+    products: require("./products")(schemas, models, exceptions),
+    orders: require("./orders")(schemas, models, exceptions),
+    utils: require("./utils")(logger)
   };
 };

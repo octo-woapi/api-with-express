@@ -1,18 +1,12 @@
-module.exports = app => {
-  async function list(req, res) {
-    const models = app.get("models");
+module.exports = models => {
+  return { list, removeAll };
 
-    let billList = await models.Bill.findAll();
-    res.status(200).send(billList);
+  async function list() {
+    return await models.Bill.findAll();
   }
 
-  async function removeAll(req, res) {
-    const models = app.get("models");
-
+  async function removeAll() {
     const billList = await models.Bill.findAll();
     billList.forEach(bill => bill.destroy());
-    res.status(204).send();
   }
-
-  return { list, removeAll };
 };
